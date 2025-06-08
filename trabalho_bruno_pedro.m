@@ -687,174 +687,169 @@ switch choice
         fprintf('Users in urban areas: %d (%.1f%%)\n', totalUrbanUsers, 100*totalUrbanUsers/nUsers);
 
     case 2
-        %% ================ RAYTRACING SIMULATION FOR ESTG ================
-        fprintf("=== STARTING SIMULATION ===\n");
+fprintf("=== STARTING SIMULATION ===\n");
 
-        %% Initial configuration
-        fprintf("Setting up base station and transmitter parameters...\n");
+%% === INITIAL CONFIGURATION ===
+fprintf("Setting up base station and transmitter parameters...\n");
 
-        % Define base station coordinates
-        latitude = 39.735250;
-        longitude = -8.820638;
+% Coordinates of the base station
+latitude = 39.735250;
+longitude = -8.820638;
 
-        % Set transmitter parameters
-        txHeight = 3;                   % Antenna height in meters
-        Ptx_dBm = 0;                    % Transmission power in dBm
-        Ptx_W = 10^((Ptx_dBm - 30)/10); % Convert dBm to Watts
-        frequency = 3e9;                % Frequency: 3 GHz
+% Transmitter parameters
+txHeight = 3;                  % Antenna height in meters
+Ptx_dBm = 0;                   % Transmission power in dBm
+Ptx_W = 10^((Ptx_dBm - 30)/10); % Convert dBm to Watts
+frequency = 3e9;               % Frequency: 3 GHz
 
-        % Create transmitter site object
-        tx = txsite("Name", "Base Station", ...
-            "Latitude", latitude, ...
-            "Longitude", longitude, ...
-            "AntennaHeight", txHeight, ...
-            "TransmitterPower", Ptx_W, ...
-            "TransmitterFrequency", frequency);
+% Create transmitter site
+tx = txsite("Name", "Base Station", ...
+    "Latitude", latitude, ...
+    "Longitude", longitude, ...
+    "AntennaHeight", txHeight, ...
+    "TransmitterPower", Ptx_W, ...
+    "TransmitterFrequency", frequency);
 
-        %% Configure ray tracing propagation model
-        fprintf("Creating ray tracing propagation model...\n");
+%% === SETUP RAY TRACING MODEL ===
+fprintf("Creating ray tracing propagation model...\n");
 
-        % Create ray tracing model with specific parameters
-        pm = propagationModel("raytracing", ...
-            "Method", "sbr", ...                 % Shooting and Bouncing Rays method
-            "MaxNumReflections", 2, ...          % Allow up to 2 reflections
-            "SurfaceMaterial", "concrete");      % Use concrete material properties
+pm = propagationModel("raytracing", ...
+    "Method", "sbr", ...
+    "MaxNumReflections", 2, ...
+    "SurfaceMaterial", "concrete");
 
-        % Open site viewer with buildings and terrain data
-        viewer1 = siteviewer("Name", "Ray Tracing Viewer", ...
-            "Buildings", "estg.osm", ...         % Load OpenStreetMap building data
-            "Terrain", "gmted2010");             % Load terrain elevation data
+viewer1 = siteviewer("Name", "Ray Tracing Viewer", ...
+    Buildings="leiria.osm", ...
+    Terrain="gmted2010");
 
-        fprintf("Plotting simulated coverage using ray tracing...\n");
+fprintf("Plotting simulated coverage using ray tracing...\n");
 
-        % Calculate coverage using ray tracing model
-        coverage(tx, ...
-            "PropagationModel", pm, ...
-            "MaxRange", 2000, ...          % Maximum range in meters
-            "Resolution", 10, ...          % Resolution in meters
-            "SignalStrengths", [-120 -100 -90 -80 -70 -60 -50]);  % Signal levels to plot
+coverage(tx, ...
+    "PropagationModel", pm, ...
+    "MaxRange", 200, ...
+    "Resolution", 5, ...
+    "SignalStrengths", [-120 -100 -90 -80 -70 -60 -50]);
 
-        %% Import measured data
-        fprintf("\nImporting measured data from file...\n");
+%% === IMPORT MEASURED DATA ===
+fprintf("\nImporting measured data from file...\n");
 
-        % Open and read data file
-        fid = fopen('gupo1.txt');
-        C = textscan(fid, '%f%f%f','Delimiter',',');
-        fclose(fid);
+fid = fopen('data_pedro_bruno.txt');
+C = textscan(fid, '%f%f%f','Delimiter',',');
+fclose(fid);
 
-        % Extract measurement data
-        Latitude = C{1};
-        Longitude = C{2};
-        signalMeasured = C{3};
+Latitude = C{1};
+Longitude = C{2};
+signalMeasured = C{3};
 
-        fprintf("Import completed. %d points loaded.\n", length(Latitude));
+fprintf("Import completed. %d points loaded.\n", length(Latitude));
 
-        %% Visualize measured data
-        fprintf("Plotting measured data on map...\n");
+%% === VISUALIZE MEASURED DATA ===
+fprintf("Plotting measured data on map...\n");
 
-        viewer2 = siteviewer("Name", "Measured Data Viewer");
+viewer2 = siteviewer("Name", "Measured Data Viewer");
 
-        % Create table and propagation data object for visualization
-        tbl_measured = table(Latitude, Longitude, signalMeasured, ...
-            'VariableNames', {'Latitude', 'Longitude', 'SignalStrength'});
-        pd_measured = propagationData(tbl_measured);
+tbl_measured = table(Latitude, Longitude, signalMeasured, ...
+    'VariableNames', {'Latitude', 'Longitude', 'SignalStrength'});
+pd_measured = propagationData(tbl_measured);
 
-        % Plot measured data on map
-        plot(pd_measured, "Colormap", "turbo", "LegendTitle", "Measured RSSI (dBm)");
-        contour(pd_measured, "Colormap", "turbo", "LegendTitle", "Measured RSSI (dBm)");
+plot(pd_measured, "Colormap", "turbo", "LegendTitle", "Measured RSSI (dBm)");
+contour(pd_measured, "Colormap", "turbo", "LegendTitle", "Measured RSSI (dBm)");
 
-        %% Compute simulated RSSI at measurement points
-        fprintf("\nComputing simulated RSSI for each measurement point...\n");
+%% === COMPUTE SIMULATED RSSI ===
+fprintf("\nComputing simulated RSSI for each measurement point...\n");
 
-        n = length(Latitude);
-        simulatedRSSI = zeros(size(Latitude));
+n = length(Latitude);
+simulatedRSSI = zeros(size(Latitude));
 
-        % Calculate simulated RSSI for each measured point
-        for i = 1:n
-            % Create receiver at measured location
-            rx = rxsite("Latitude", Latitude(i), ...
+for i = 1:n
+    rx = rxsite("Latitude", Latitude(i), ...
                 "Longitude", Longitude(i), ...
-                "AntennaHeight", 1.5);  % Typical height for mobile device
+                "AntennaHeight", 1.5);
 
-            % Calculate signal strength
-            simulatedRSSI(i) = sigstrength(rx, tx, pm);
+    simulatedRSSI(i) = sigstrength(rx, tx, pm);
 
-            % Display progress
-            if mod(i, ceil(n/10)) == 0 || i == n
-                fprintf("Progress: %d/%d points (%.1f%%)\n", i, n, 100*i/n);
-            end
-        end
+    if mod(i, ceil(n/10)) == 0 || i == n
+        fprintf("Progress: %d/%d points (%.1f%%)\n", i, n, 100*i/n);
+    end
+end
 
-        fprintf("Simulated RSSI computation completed.\n");
+fprintf("Simulated RSSI computation completed.\n");
 
-        %% Visualize simulated RSSI
-        fprintf("Plotting simulated data on map...\n");
+%% === VISUALIZE SIMULATED RSSI ===
+fprintf("Plotting simulated data on map...\n");
 
-        viewer3 = siteviewer("Name", "Simulated Data Viewer");
+viewer3 = siteviewer("Name", "Simulated Data Viewer");
 
-        % Create table and propagation data object for visualization
-        tbl_simulated = table(Latitude, Longitude, simulatedRSSI, ...
-            'VariableNames', {'Latitude', 'Longitude', 'SignalStrength'});
-        pd_simulated = propagationData(tbl_simulated);
+tbl_simulated = table(Latitude, Longitude, simulatedRSSI, ...
+    'VariableNames', {'Latitude', 'Longitude', 'SignalStrength'});
+pd_simulated = propagationData(tbl_simulated);
 
-        % Plot simulated data on map
-        plot(pd_simulated, "Colormap", "parula", "LegendTitle", "Simulated RSSI (dBm)");
-        contour(pd_simulated, "Colormap", "parula", "LegendTitle", "Simulated RSSI (dBm)");
+plot(pd_simulated, "Colormap", "parula", "LegendTitle", "Simulated RSSI (dBm)");
+contour(pd_simulated, "Colormap", "parula", "LegendTitle", "Simulated RSSI (dBm)");
 
-        %% Compute error between measured and simulated values
-        fprintf("Computing error between measured and simulated RSSI...\n");
+%% === ERROR ANALYSIS ===
+fprintf("Computing error between measured and simulated RSSI...\n");
 
-        errorRSSI = signalMeasured - simulatedRSSI;  % Error in dB
-        absError = abs(errorRSSI);                   % Absolute error
+errorRSSI = signalMeasured - simulatedRSSI;
+absError = abs(errorRSSI);
 
-        % Calculate error statistics
-        meanError = mean(errorRSSI);                 % Mean error (bias)
-        rmse = sqrt(mean(errorRSSI.^2));             % Root Mean Square Error
-        mae = mean(absError);                        % Mean Absolute Error
+meanError = mean(errorRSSI);
+rmse = sqrt(mean(errorRSSI.^2));
+mae = mean(absError);
 
-        % Display error statistics
-        fprintf("\n=== ERROR STATISTICS ===\n");
-        fprintf("Mean Error (Measured - Simulated): %.2f dB\n", meanError);
-        fprintf("RMSE: %.2f dB\n", rmse);
-        fprintf("MAE: %.2f dB\n", mae);
+fprintf("\n=== ERROR STATISTICS ===\n");
+fprintf("Mean Error (Measured - Simulated): %.2f dB\n", meanError);
+fprintf("RMSE: %.2f dB\n", rmse);
+fprintf("MAE: %.2f dB\n", mae);
 
-        %% Visualize percentage error
-        fprintf("Plotting percentage error heatmap...\n");
+% %% === PLOT RSSI ERROR HEATMAP ===
+% fprintf("Plotting heatmap of RSSI error...\n");
+% 
+% viewer4 = siteviewer("Name", "RSSI Error Viewer");
+% 
+% tbl_error = table(Latitude, Longitude, errorRSSI, ...
+%     'VariableNames', {'Latitude', 'Longitude', 'SignalStrength'});
+% pd_error = propagationData(tbl_error);
+% 
+% plot(pd_error, "Colormap", "jet", "LegendTitle", "RSSI Error (dB)");
+% contour(pd_error, "Colormap", "jet", "LegendTitle", "RSSI Error (dB)");
 
-        % Filter out invalid RSSI values to avoid division issues
-        minValidRSSI = -100;
-        validIdx = abs(signalMeasured) > 1 & signalMeasured < 0;
+%% === PERCENTAGE ERROR MAP ===
+fprintf("Plotting percentage error heatmap...\n");
 
-        % Calculate percentage error
-        percentageError = zeros(size(signalMeasured));
-        percentageError(validIdx) = abs(errorRSSI(validIdx) ./ signalMeasured(validIdx)) * 100;
+% Avoid division by zero or values too close to 0
+minValidRSSI = -100; % filter unrealistic RSSI values
+validIdx = abs(signalMeasured) > 1 & signalMeasured < 0;
 
-        % Limit maximum error for better visualization
-        percentageError = min(percentageError, 100);  % Cap at 100%
+% Preallocate and compute percentage error
+percentageError = zeros(size(signalMeasured));
+percentageError(validIdx) = abs(errorRSSI(validIdx) ./ signalMeasured(validIdx)) * 100;
 
-        viewer5 = siteviewer("Name", "Percentage Error Viewer");
+% Clamp large errors to improve visualization
+percentageError = min(percentageError, 100); % cap at 100%
 
-        % Create table and propagation data object for visualization
-        tbl_percent = table(Latitude, Longitude, percentageError, ...
-            'VariableNames', {'Latitude', 'Longitude', 'SignalStrength'});
-        pd_percent = propagationData(tbl_percent);
+viewer5 = siteviewer("Name", "Percentage Error Viewer");
 
-        % Plot percentage error on map
-        plot(pd_percent, "Colormap", flipud(hot), "LegendTitle", "RSSI % Error");
-        contour(pd_percent, "Colormap", flipud(hot), "LegendTitle", "RSSI % Error");
+tbl_percent = table(Latitude, Longitude, percentageError, ...
+    'VariableNames', {'Latitude', 'Longitude', 'SignalStrength'});
+pd_percent = propagationData(tbl_percent);
 
-        %% Error histogram
-        fprintf("Plotting histogram of RSSI error...\n");
+% Use 'hot' colormap but flip it so red is for high values (100% error)
+plot(pd_percent, "Colormap", flipud(hot), "LegendTitle", "RSSI % Error");
+contour(pd_percent, "Colormap", flipud(hot), "LegendTitle", "RSSI % Error");
 
-        figure;
-        histogram(errorRSSI, 20);  % Create histogram with 20 bins
-        title("RSSI Error Distribution (Measured - Simulated)");
-        xlabel("Error (dB)");
-        ylabel("Frequency");
-        grid on;
 
-        fprintf("\n=== SIMULATION COMPLETE ===\n");
+%% === ERROR HISTOGRAM ===
+fprintf("Plotting histogram of RSSI error...\n");
 
+figure;
+histogram(errorRSSI, 20);
+title("RSSI Error Distribution (Measured - Simulated)");
+xlabel("Error (dB)");
+ylabel("Frequency");
+grid on;
+
+fprintf("\n=== SIMULATION COMPLETE ===\n");
     otherwise
         % Handle invalid choice (should not occur due to input validation)
         error('Invalid option! Please run again and choose 1 or 2.');

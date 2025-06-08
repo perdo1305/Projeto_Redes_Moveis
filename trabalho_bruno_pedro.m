@@ -251,12 +251,20 @@ switch choice
                 pm = propagationModel(modelName);
                 disp(['Using model: ', modelName]);
 
+                % Create siteviewer for coverage visualization
+                viewer = siteviewer('Name', 'Network Coverage Map', ...
+                    'Basemap', 'satellite');
+                
+                % Show transmitter sites on the map
+                show(txSites);
+
                 % Calculate and display coverage
                 coverage(txSites, ...
-                    'SignalStrengths', -110:1:-10, ...  % Signal strength range (dBm)
+                    'SignalStrengths', -110:10:-10, ...  % Signal strength range (dBm)
                     'MaxRange', 5000, ...               % Maximum range in meters
                     'PropagationModel', pm, ...         % Selected propagation model
-                    'Resolution', 20);                  % Resolution in meters
+                    'Resolution', 50);                  % Resolution in meters
+                
             catch ME
                 warning("Error applying model '%s': %s", modelName, ME.message);
             end

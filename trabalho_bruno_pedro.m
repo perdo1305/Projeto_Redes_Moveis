@@ -87,7 +87,7 @@ switch choice
         xlabel('X (m)');
         ylabel('Y (m)');
         zlabel('Z (m)');
-        title('Posição dos Elementos do Array URA');
+        title('Position of URA Array');
         view(3);
 
         % 3. Corte em azimute (elevação = 0°)
@@ -101,7 +101,7 @@ switch choice
         % 2. Padrão 3D do array
         subplot(2,2,4);
         pattern(txArray, fq, -180:180, -90:90, 'Type', 'directivity');
-        title('Padrão 3D do Array URA');
+        title('3D Pattern of URA Array');
 
         zu_indices = [2,3,4,5,7,9,10];  % Change from [1, 2, 9] to use only valid indices
         sectorized_index = 5;    % Apenas a 5 será setorizada
@@ -262,7 +262,7 @@ switch choice
         % Create separate figure windows for each plot
 
         % Figure 1 – Mapa Best Server
-        figure('Name', 'Mapa Best Server', 'Position', [100 100 700 600]);
+        figure('Name', 'Best Server Map', 'Position', [100 100 700 600]);
         pcolor(lonGrid, latGrid, bestServerIndex);
         shading flat;
         colormap(parula(numel(txSites)));  % Changed from jet to parula for better color distinction
@@ -274,27 +274,27 @@ switch choice
             plot(txSites(i).Longitude, txSites(i).Latitude, 'r^', 'MarkerSize', 10, 'LineWidth', 2);
             text(txSites(i).Longitude, txSites(i).Latitude, [' BS', num2str(i)], 'Color', 'black', 'FontWeight', 'bold');
         end
-        title('Mapa Best Server', 'FontWeight', 'bold');
+        title('Best Server Map', 'FontWeight', 'bold');
         xlabel('Longitude'); ylabel('Latitude');
         hold off;
 
         % Figure 2 – Margem de Dominância
-        figure('Name', 'Margem de Dominância', 'Position', [150 150 700 600]);
+        figure('Name', 'Dominance Margin', 'Position', [150 150 700 600]);
         pcolor(lonGrid, latGrid, margin);
         shading flat;
         colormap(hot);
         colorbar;
-        title('Margem de Domínio (RSSI_1 - RSSI_2) [dB]', 'FontWeight', 'bold');
+        title('Dominance Margin (RSSI_1 - RSSI_2) [dB]', 'FontWeight', 'bold');
         xlabel('Longitude'); ylabel('Latitude');
         hold on;
 
         borderZone = margin < threshold;
         contour(lonGrid, latGrid, borderZone, [1 1], 'LineColor', 'b', 'LineWidth', 1.5);
-        legend('Margem < 3 dB (Zona de Instabilidade)', 'Location', 'northeast');
+        legend('Margin < 3 dB (Instability Zone)', 'Location', 'northeast');
         hold off;
 
         % Figure 3 – Mapa SINR Estimado
-        figure('Name', 'Mapa SINR Estimado', 'Position', [200 200 700 600]);
+        figure('Name', 'Estimated SINR Map', 'Position', [200 200 700 600]);
         signal = sortedRSSI(:,:,1);
         total_power = sum(10.^(rssiMatrix/10), 3);
         interference = 10*log10(total_power - 10.^(signal/10) + 1e-10);
@@ -304,11 +304,11 @@ switch choice
         shading flat;
         colormap(parula);
         colorbar;
-        title('Mapa de SINR Estimado [dB]', 'FontWeight', 'bold');
+        title('Estimated SINR Map [dB]', 'FontWeight', 'bold');
         xlabel('Longitude'); ylabel('Latitude');
 
         % Figure 4 – Distribuição de Best Server
-        figure('Name', 'Distribuição de Best Server', 'Position', [250 250 700 600]);
+        figure('Name', 'Best Server Distribution', 'Position', [250 250 700 600]);
         counts = histcounts(bestServerIndex, 1:(numel(txSites)+1));
         b = bar(counts);
         b.FaceColor = 'flat';  % Enable coloring each bar individually
@@ -321,9 +321,9 @@ switch choice
 
         xticks(1:numel(txSites));
         xticklabels({txSites.Name});
-        xlabel('Estação Base');
-        ylabel('N.º de pontos como Best Server');
-        title('Distribuição de Best Server', 'FontWeight', 'bold');
+        xlabel('Base Station');
+        ylabel('Number of points as Best Server');
+        title('Best Server Distribution', 'FontWeight', 'bold');
 
         % Add a grid to the bar chart for better readability
         grid on;
@@ -339,20 +339,20 @@ switch choice
         % Define your specific path coordinates
         % Example: A path that goes through different coverage areas to trigger handovers
         latitudes = [39.747029, 39.750000, 39.755000, 39.760000, 39.765000, ...
-                     39.770000, 39.775000, 39.778857, 39.776000, 39.774000, ...
-                     39.772000, 39.770000, 39.765000, 39.760000, 39.755000, ...
-                     39.751326, 39.748000, 39.745000, 39.740000, 39.735000, ...
-                     39.730000, 39.725000, 39.720000, 39.715000, 39.712350];
+            39.770000, 39.775000, 39.778857, 39.776000, 39.774000, ...
+            39.772000, 39.770000, 39.765000, 39.760000, 39.755000, ...
+            39.751326, 39.748000, 39.745000, 39.740000, 39.735000, ...
+            39.730000, 39.725000, 39.720000, 39.715000, 39.712350];
 
         longitudes = [-8.809635, -8.808000, -8.806000, -8.804000, -8.802000, ...
-                      -8.800000, -8.798000, -8.780254, -8.782000, -8.784000, ...
-                      -8.786000, -8.788000, -8.790000, -8.792000, -8.794000, ...
-                      -8.781058, -8.785000, -8.790000, -8.800000, -8.810000, ...
-                      -8.820000, -8.830000, -8.840000, -8.845000, -8.849653];
+            -8.800000, -8.798000, -8.780254, -8.782000, -8.784000, ...
+            -8.786000, -8.788000, -8.790000, -8.792000, -8.794000, ...
+            -8.781058, -8.785000, -8.790000, -8.800000, -8.810000, ...
+            -8.820000, -8.830000, -8.840000, -8.845000, -8.849653];
 
         numPoints = length(latitudes);
 
-       
+
 
         fprintf('Path defined with %d points\n', numPoints);
 
@@ -369,7 +369,7 @@ switch choice
         [bestRSSI, bestServerIndex] = max(rssiMatrix, [], 2);
 
         % Figura única com 3 subplots
-        figure('Name','Estudo de Handover - Trajeto, RSSI e Best Server', 'Position',[100 100 1200 800]);
+        figure('Name','Handover Study - Path, RSSI and Best Server', 'Position',[100 100 1200 800]);
 
         % Subplot 1 – Mapa com o trajeto e estações base (com cores únicas)
         subplot(3,1,1);
@@ -385,26 +385,26 @@ switch choice
                 'DisplayName', txSites(i).Name);
         end
 
-        title(['[Mapa] Trajeto RX e Estações Base - ', pathName]);
-        legend('Trajeto RX', txSites.Name, 'Location','best');
+        title(['[Map] RX Path and Base Stations - ', pathName]);
+        legend('RX Path', txSites.Name, 'Location','best');
         grid on;
 
         % Subplot 3 – Estação ativa (Best Server)
         subplot(3,1,2);
         plot(1:numPoints, bestServerIndex, 'k', 'LineWidth', 1.5);
-        xlabel('Ponto no trajeto');
-        ylabel('Estação Base Ativa');
+        xlabel('Point on path');
+        ylabel('Active Base Station');
         yticks(1:numel(txSites));
         yticklabels({txSites.Name});
-        title('[Gráfico] Estação Servidora (Best Server) ao Longo do Trajeto');
+        title('[Chart] Serving Station (Best Server) Along the Path');
         grid on;
 
         % Subplot 2 – RSSI ao longo do percurso
         subplot(3,1,3);
         plot(1:numPoints, rssiMatrix, 'LineWidth', 1.2);
-        xlabel('Ponto no trajeto');
+        xlabel('Point on path');
         ylabel('RSSI (dBm)');
-        title('[Gráfico] RSSI Recebido por Estação Base');
+        title('[Chart] RSSI Received by Base Station');
         legend({txSites.Name}, 'Location','best');
         grid on;
 
@@ -600,22 +600,22 @@ switch choice
         bar(capacityPerUser / 1e6);
         xticks(1:numel(txSites));
         xticklabels({txSites.Name});
-        title('Capacidade Média por Usuário');
-        xlabel('Estação Base');
-        ylabel('Capacidade (Mbps)');
+        title('Average Capacity per User');
+        xlabel('Base Station');
+        ylabel('Capacity (Mbps)');
 
         % Figura extra: Distribuição de usuários por estação base
-        figure('Name', 'Distribuição de Usuários por Estação');
+        figure('Name', 'User Distribution by Base Station');
         bar(capacityCount);
         xticks(1:numel(txSites));
         xticklabels({txSites.Name});
-        title('Distribuição de Usuários por Estação Base');
-        xlabel('Estação Base');
-        ylabel('Número de Usuários');
+        title('User Distribution by Base Station');
+        xlabel('Base Station');
+        ylabel('Number of Users');
         hold on;
         urbanAntennas = [1, 2];  % Define only valid indices
         bar(urbanAntennas, capacityCount(urbanAntennas), 'r');
-        legend('Estações Rurais', 'Estações Urbanas');
+        legend('Rural Stations', 'Urban Stations');
 
         % Impressão dos resultados
         fprintf('Capacity Statistics with %d users:\n', nUsers);

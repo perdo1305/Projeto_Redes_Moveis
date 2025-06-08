@@ -331,18 +331,32 @@ switch choice
 
         %% Estudo do Handover
         fprintf('\n--- Handover Study ---\n');
-        fprintf('Chosen path type: Random Path \n');
-        % TRAJETO ALEATÓRIO
-        pathName = 'Random Path';
-        numPoints = 50;
+        fprintf('Chosen path type: Predefined Path \n');
 
-        minLat = 39.78490706138443; maxLat = 39.72129535847994;
-        minLon = -8.859864711773678; maxLon = -8.780557161553446;
+        % TRAJETO PREDEFINIDO COM COORDENADAS ESPECÍFICAS
+        pathName = 'Predefined Path';
 
-        latitudes = minLat + (maxLat - minLat) * rand(1, numPoints);
-        longitudes = minLon + (maxLon - minLon) * rand(1, numPoints);
+        % Define your specific path coordinates
+        % Example: A path that goes through different coverage areas to trigger handovers
+        latitudes = [39.747029, 39.750000, 39.755000, 39.760000, 39.765000, ...
+                     39.770000, 39.775000, 39.778857, 39.776000, 39.774000, ...
+                     39.772000, 39.770000, 39.765000, 39.760000, 39.755000, ...
+                     39.751326, 39.748000, 39.745000, 39.740000, 39.735000, ...
+                     39.730000, 39.725000, 39.720000, 39.715000, 39.712350];
 
-        % CÁLCULO DO RSSI
+        longitudes = [-8.809635, -8.808000, -8.806000, -8.804000, -8.802000, ...
+                      -8.800000, -8.798000, -8.780254, -8.782000, -8.784000, ...
+                      -8.786000, -8.788000, -8.790000, -8.792000, -8.794000, ...
+                      -8.781058, -8.785000, -8.790000, -8.800000, -8.810000, ...
+                      -8.820000, -8.830000, -8.840000, -8.845000, -8.849653];
+
+        numPoints = length(latitudes);
+
+       
+
+        fprintf('Path defined with %d points\n', numPoints);
+
+        % CÁLCULO DO RSSI (rest of your code remains the same)
         rssiMatrix = zeros(numPoints, numel(txSites));
         fprintf('Calculating RSSI along the path...\n');
         for i = 1:numel(txSites)

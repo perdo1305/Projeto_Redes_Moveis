@@ -1,22 +1,31 @@
-% ============================================================
+%% ==========================================================================
 %  PEDRO FERREIRA 2222035 | BRUNO VICENTE 2210709
-%  COMUNICACOES MOVEIS 24/25
-% ===========================================================
+%  MOBILE COMMUNICATIONS 24/25
+%
+%  This script simulates and analyzes mobile network deployments in two scenarios:
+%  1) 5G Network coverage in Leiria city
+%  2) Raytracing simulation for signal propagation at ESTG campus
+%% ==========================================================================
 
+% Clear workspace, command window, and close all figures
 clc; clear all; close all;
 
+% Start timer to measure execution time
 tic
 
+% Display program header
 fprintf(['\n\n\n',...
     '============================================================\n', ...
     ' PEDRO FERREIRA 2222035 | BRUNO VICENTE 2210709\n', ...
     ' COMUNICACOES MOVEIS 24/25\n', ...
     '============================================================\n\n']);
 
+% Present scenario options to user
 disp('Choose the scenario for analysis:');
 disp('1 - 5G Network in Leiria city');
 disp('2 - Raytracing Simulation ESTG');
 choice = 0;
+% Input validation loop to ensure user selects a valid option
 while ~ismember(choice, [1, 2])
     choice = input('Enter 1 or 2: ');
     if ~ismember(choice, [1, 2])
@@ -26,12 +35,12 @@ end
 
 switch choice
     case 1
+        %% ====================== 5G NETWORK SIMULATION ======================
         fprintf('You choose: 5G Network in Leiria city\n');
-        % Coordenadas das Base Stations
 
-        % ZU - Zona Urbana (3600 MHz)
-        % ZR - Zona Rural  ( 700 MHz)
-
+        % Define base station locations in Leiria
+        % ZU - Urban Zone (3600 MHz)
+        % ZR - Rural Zone (700 MHz)
         baseStations = [
             39.731823, -8.798338 %ZR 1
             39.736940, -8.799721 %ZU 2 -
@@ -44,42 +53,49 @@ switch choice
             39.747375, -8.815152 %ZU 9 -
             39.746381, -8.804517 %ZU 10 -
 
+            % Additional locations (commented out)
             %39.747029, -8.809635 %  Castelo Leiria
             %39.739583, -8.871774 %  ESTG
             %39.751326, -8.781058 %  Andrinos
             %39.712350, -8.849653
             ];
 
-        numStations = size(baseStations, 1);
+        numStations = size(baseStations, 1); % Calculate total number of stations
 
+        %% Create patch microstrip antenna array for base station #9
+        % Define frequency and calculate wavelength
+        fq=0.7e9; % 700 MHz
+        lambda = physconst('lightspeed') / fq; % Calculate wavelength
 
-        % Criação da antena nº9 com sectorização e sendo esta de patchs
-        fq=0.7e9;
-        lambda = physconst('lightspeed') / fq;
+        % Create patch element
         txElement = design(patchMicrostrip, fq);
-        txElement.Tilt = 90;
-        txElement.TiltAxis = [0 1 0];
+        txElement.Tilt = 90; % Set tilt angle
+        txElement.TiltAxis = [0 1 0]; % Set tilt axis
+
+        % Define array dimensions (2x2)
         ntxrow = 2;
         ntxcol = 2;
-        drow = lambda/2;
-        dcol = lambda/2;
+        drow = lambda/2; % Half-wavelength spacing in rows
+        dcol = lambda/2; % Half-wavelength spacing in columns
 
+        % Create Uniform Rectangular Array (URA)
         txArray = phased.URA("Size", [ntxrow ntxcol], ...
             "Element", txElement, ...
             "ElementSpacing", [drow dcol]);
 
-        %Plots de diagrams da antena
-        az = -180:1:180;
-        el = 0;
-        az_el = 0;
+        % Calculate antenna patterns for visualization
+        az = -180:1:180; % Azimuth range
+        el = 0; % Elevation fixed at 0°
+        az_el = 0; % Azimuth for elevation pattern
 
-        % Padrões cortes azimute e elevação
-        pat_az = pattern(txArray, fq, az, el);
-        pat_el = pattern(txArray, fq, az_el, -90:1:90);
+        % Calculate radiation patterns
+        pat_az = pattern(txArray, fq, az, el); % Azimuth pattern
+        pat_el = pattern(txArray, fq, az_el, -90:1:90); % Elevation pattern
 
+        % Create figure for antenna visualization
         figure('Position',[100 100 1200 900]);
 
-        % 1. Visualizar layout do array
+        % 1. Display array element positions
         subplot(2,2,1);
         pos = txArray.getElementPosition;
         scatter3(pos(1,:), pos(2,:), pos(3,:), 50,'r', 'filled');
@@ -87,42 +103,48 @@ switch choice
         xlabel('X (m)');
         ylabel('Y (m)');
         zlabel('Z (m)');
-        title('Position of URA Array');
+        title('Position of URA Array Elements');
         view(3);
 
-        % 3. Corte em azimute (elevação = 0°)
+        % 2. Display azimuth pattern
         subplot(2,2,2);
         patternAzimuth(txArray, fq);
 
-        % 4. Corte em elevação (azimute = 0°)
+        % 3. Display elevation pattern
         subplot(2,2,3);
         patternElevation(txArray, fq);
 
-        % 2. Padrão 3D do array
+        % 4. Display 3D pattern
         subplot(2,2,4);
         pattern(txArray, fq, -180:180, -90:90, 'Type', 'directivity');
         title('3D Pattern of URA Array');
 
-        zu_indices = [2,3,4,5,7,9,10];  % Change from [1, 2, 9] to use only valid indices
-        sectorized_index = 5;    % Apenas a 5 será setorizada
+        %% Define network parameters
+        % Specify which stations are in urban zones (using 3.6GHz)
+        zu_indices = [2,3,4,5,7,9,10];
+
+        % Define which station will use sectorization (3 sectors)
+        sectorized_index = 5;
+
+        % Azimuth angles for the three sectors (120° apart)
         azimutes = [0, 120, 240];
 
-        % Define individual heights for each base station (replace single height variable)
+        % Set heights for base stations (default=28m, station 3=40m)
         stationHeights = 28 * ones(1, size(baseStations, 1));
-        stationHeights(3) = 40;  % Set base station 2 to be higher (40m)
+        stationHeights(3) = 40;  % Set station #3 to be higher (40m)
 
         numStations = size(baseStations,1);
 
-        % Inicializa vetor vazio de txSites
+        % Initialize transmitter sites array
         txSites = txsite.empty;
+        siteCount = 1;  % Global site counter
 
-        siteCount = 1;  % contador global de sites
-
-        % Display antenna choices
+        %% Let user choose antenna type
         disp('Choose the antenna type:');
         disp('1 - Isotropic');
         disp('2 - Sectorized patch array');
         antennaChoice = 0;
+        % Input validation for antenna choice
         while ~ismember(antennaChoice, [1, 2])
             antennaChoice = input('Enter 1 or 2: ');
             if ~ismember(antennaChoice, [1, 2])
@@ -132,23 +154,25 @@ switch choice
 
         % Initialize txSites array
         txSites = txsite.empty;
-        siteCount = 1;  % contador global de sites
+        siteCount = 1;
 
+        %% Create base stations with appropriate configurations
         for i = 1:numStations
-            % Define parâmetros de frequência e potência
+            % Define frequency and power based on urban/rural zone
             if ismember(i, zu_indices)
-                freq = 3.6e9;
-                power = 5;
+                freq = 3.6e9;  % 3.6 GHz for urban areas
+                power = 5;     % Lower power for urban areas (more dense)
             else
-                freq = 0.7e9;
-                power = 20;
+                freq = 0.7e9;  % 700 MHz for rural areas (better propagation)
+                power = 20;    % Higher power for rural coverage
             end
 
-            % Create base station with the appropriate configuration
+            % Create base station with appropriate configuration
             if i == sectorized_index
+                % Create 3 sectors for the sectorized station
                 for sector = 1:3
                     if antennaChoice == 1
-                        % Isotropic antenna (don't include Antenna parameter)
+                        % Create with isotropic antenna
                         txSites(siteCount) = txsite( ...
                             'Name', sprintf('Base%d_Sector%d', i, sector), ...
                             'Latitude', baseStations(i,1), ...
@@ -158,7 +182,7 @@ switch choice
                             'TransmitterPower', power, ...
                             'AntennaAngle', azimutes(sector));
                     else
-                        % Sectorized patch array
+                        % Create with patch array antenna
                         txSites(siteCount) = txsite( ...
                             'Name', sprintf('Base%d_Sector%d', i, sector), ...
                             'Latitude', baseStations(i,1), ...
@@ -172,8 +196,9 @@ switch choice
                     siteCount = siteCount + 1;
                 end
             else
+                % Create regular non-sectorized station
                 if antennaChoice == 1
-                    % Isotropic antenna (don't include Antenna parameter)
+                    % Create with isotropic antenna
                     txSites(siteCount) = txsite( ...
                         'Name', sprintf('BaseStation%d', i), ...
                         'Latitude', baseStations(i,1), ...
@@ -182,7 +207,7 @@ switch choice
                         'TransmitterFrequency', freq, ...
                         'TransmitterPower', power);
                 else
-                    % Sectorized patch array
+                    % Create with patch array antenna
                     txSites(siteCount) = txsite( ...
                         'Name', sprintf('BaseStation%d', i), ...
                         'Latitude', baseStations(i,1), ...
@@ -196,23 +221,27 @@ switch choice
             end
         end
 
-        % Modelo de propagação
+        %% Select propagation model
         modelList = {'close-in', 'longley-rice', 'freespace'};
         fprintf('Available propagation models:\n');
         for idx = 1:numel(modelList)
             fprintf('  %d - %s\n', idx, modelList{idx});
         end
         selection = input('Enter the number of the propagation model: ');
+
+        % Apply selected propagation model
         if isnumeric(selection) && selection >= 1 && selection <= numel(modelList)
             modelName = modelList{selection};
             try
                 pm = propagationModel(modelName);
                 disp(['Using model: ', modelName]);
+
+                % Calculate and display coverage
                 coverage(txSites, ...
-                    'SignalStrengths', -110:1:-10, ...
-                    'MaxRange', 5000, ...
-                    'PropagationModel', pm, ...
-                    'Resolution', 20);
+                    'SignalStrengths', -110:1:-10, ...  % Signal strength range (dBm)
+                    'MaxRange', 5000, ...               % Maximum range in meters
+                    'PropagationModel', pm, ...         % Selected propagation model
+                    'Resolution', 20);                  % Resolution in meters
             catch ME
                 warning("Error applying model '%s': %s", modelName, ME.message);
             end
@@ -220,56 +249,63 @@ switch choice
             disp('No model selected. Script terminated.');
         end
 
+        % Display elapsed time
         toc
 
-        %% Geração da grelha de pontos
+        %% Generate grid of points for detailed analysis
+        % Set latitude/longitude limits based on base station locations
         latLim = [min([txSites.Latitude])-0.005, max([txSites.Latitude])+0.005];
         lonLim = [min([txSites.Longitude])-0.005, max([txSites.Longitude])+0.005];
 
-        % Resolução da grelha (reduzida para processamento mais rápido)
+        % Create grid with reduced resolution for faster processing
         gridResolution = 50;
         [latGrid, lonGrid] = meshgrid(linspace(latLim(1), latLim(2), gridResolution), ...
             linspace(lonLim(1), lonLim(2), gridResolution));
 
         fprintf('Calculating RSSI for grid %dx%d...\n', gridResolution, gridResolution);
 
-        %% Calcular RSSI para todos os txSites
+        %% Calculate RSSI for all transmitter sites
         rssiMatrix = zeros([size(latGrid), numel(txSites)]);
         for i = 1:numel(txSites)
             fprintf('Calculating RSSI for base station %d of %d...\n', i, numel(txSites));
+            % Create receiver sites at all grid points
             rx = rxsite('Latitude', latGrid(:), 'Longitude', lonGrid(:));
+
+            % Calculate signal strength at each point
             sig = sigstrength(rx, txSites(i), pm);
+
+            % Reshape result back to grid format
             rssiMatrix(:,:,i) = reshape(sig, size(latGrid));
         end
 
-        %% Estudo de Best Server e Interferencia Co-Canal
-
-        % Cálculo do melhor servidor
+        %% Best Server Analysis and Co-Channel Interference Study
+        % Find the strongest server at each point
         [bestRSSI, bestServerIndex] = max(rssiMatrix, [], 3);
 
-        % Estatísticas por estação
+        % Calculate statistics for each base station
         fprintf('Best Server Statistics:\n');
         for i = 1:numel(txSites)
             coverage_area = sum(bestServerIndex(:) == i) / numel(bestServerIndex) * 100;
             fprintf('Station %d: %.2f%% of the area\n', i, coverage_area);
         end
 
-        % Margem de dominância (RSSI1 - RSSI2)
+        % Calculate dominance margin (difference between strongest and second strongest)
         sortedRSSI = sort(rssiMatrix, 3, 'descend');
         margin = sortedRSSI(:,:,1) - sortedRSSI(:,:,2);
-        % Limite para zona de fronteira (margem pequena)
-        threshold = 3; % dB
-        % Create separate figure windows for each plot
 
-        % Figure 1 – Mapa Best Server
+        % Define threshold for border zones
+        threshold = 3; % 3 dB threshold for potential handover zones
+
+        %% Visualization 1: Best Server Map
         figure('Name', 'Best Server Map', 'Position', [100 100 700 600]);
         pcolor(lonGrid, latGrid, bestServerIndex);
         shading flat;
-        colormap(parula(numel(txSites)));  % Changed from jet to parula for better color distinction
+        colormap(parula(numel(txSites)));  % Use distinct colors for each station
         colorbar('Ticks', 1:numel(txSites), 'TickLabels', {txSites.Name});
         axis xy;
         hold on;
 
+        % Plot base station locations with labels
         for i = 1:numel(txSites)
             plot(txSites(i).Longitude, txSites(i).Latitude, 'r^', 'MarkerSize', 10, 'LineWidth', 2);
             text(txSites(i).Longitude, txSites(i).Latitude, [' BS', num2str(i)], 'Color', 'black', 'FontWeight', 'bold');
@@ -278,7 +314,7 @@ switch choice
         xlabel('Longitude'); ylabel('Latitude');
         hold off;
 
-        % Figure 2 – Margem de Dominância
+        %% Visualization 2: Dominance Margin Map
         figure('Name', 'Dominance Margin', 'Position', [150 150 700 600]);
         pcolor(lonGrid, latGrid, margin);
         shading flat;
@@ -288,18 +324,28 @@ switch choice
         xlabel('Longitude'); ylabel('Latitude');
         hold on;
 
+        % Highlight areas with low margin (potential handover zones)
         borderZone = margin < threshold;
         contour(lonGrid, latGrid, borderZone, [1 1], 'LineColor', 'b', 'LineWidth', 1.5);
         legend('Margin < 3 dB (Instability Zone)', 'Location', 'northeast');
         hold off;
 
-        % Figure 3 – Mapa SINR Estimado
+        %% Visualization 3: Estimated SINR Map
         figure('Name', 'Estimated SINR Map', 'Position', [200 200 700 600]);
+
+        % Calculate SINR: Signal / (Interference + Noise)
         signal = sortedRSSI(:,:,1);
+
+        % Convert RSSI to linear power, sum, then back to dB
         total_power = sum(10.^(rssiMatrix/10), 3);
+
+        % Calculate interference (total power minus signal)
         interference = 10*log10(total_power - 10.^(signal/10) + 1e-10);
+
+        % SINR = Signal - Interference in dB domain
         SINR = signal - interference;
 
+        % Plot SINR map
         pcolor(lonGrid, latGrid, SINR);
         shading flat;
         colormap(parula);
@@ -307,13 +353,13 @@ switch choice
         title('Estimated SINR Map [dB]', 'FontWeight', 'bold');
         xlabel('Longitude'); ylabel('Latitude');
 
-        % Figure 4 – Distribuição de Best Server
+        %% Visualization 4: Best Server Distribution
         figure('Name', 'Best Server Distribution', 'Position', [250 250 700 600]);
         counts = histcounts(bestServerIndex, 1:(numel(txSites)+1));
         b = bar(counts);
-        b.FaceColor = 'flat';  % Enable coloring each bar individually
+        b.FaceColor = 'flat';  % Enable individual bar coloring
 
-        % Create a colormap for the bars matching the best server colors
+        % Apply colors from the map to match bars with coverage areas
         barColors = parula(numel(txSites));
         for i = 1:numel(txSites)
             b.CData(i,:) = barColors(i,:);
@@ -324,20 +370,15 @@ switch choice
         xlabel('Base Station');
         ylabel('Number of points as Best Server');
         title('Best Server Distribution', 'FontWeight', 'bold');
-
-        % Add a grid to the bar chart for better readability
         grid on;
 
-
-        %% Estudo do Handover
+        %% Handover Analysis along a Predefined Path
         fprintf('\n--- Handover Study ---\n');
         fprintf('Chosen path type: Predefined Path \n');
 
-        % TRAJETO PREDEFINIDO COM COORDENADAS ESPECÍFICAS
         pathName = 'Predefined Path';
 
-        % Define your specific path coordinates
-        % Example: A path that goes through different coverage areas to trigger handovers
+        % Define path coordinates that traverse the coverage area
         latitudes = [39.747029, 39.750000, 39.755000, 39.760000, 39.765000, ...
             39.770000, 39.775000, 39.778857, 39.776000, 39.774000, ...
             39.772000, 39.770000, 39.765000, 39.760000, 39.755000, ...
@@ -351,12 +392,9 @@ switch choice
             -8.820000, -8.830000, -8.840000, -8.845000, -8.849653];
 
         numPoints = length(latitudes);
-
-
-
         fprintf('Path defined with %d points\n', numPoints);
 
-        % CÁLCULO DO RSSI (rest of your code remains the same)
+        % Calculate RSSI along the path for all stations
         rssiMatrix = zeros(numPoints, numel(txSites));
         fprintf('Calculating RSSI along the path...\n');
         for i = 1:numel(txSites)
@@ -366,17 +404,20 @@ switch choice
             rssiMatrix(:, i) = sig;
         end
 
+        % Determine best server at each point
         [bestRSSI, bestServerIndex] = max(rssiMatrix, [], 2);
 
-        % Figura única com 3 subplots
+        %% Visualization of Handover Study
         figure('Name','Handover Study - Path, RSSI and Best Server', 'Position',[100 100 1200 800]);
 
-        % Subplot 1 – Mapa com o trajeto e estações base (com cores únicas)
+        % Plot 1: Map showing path and base stations
         subplot(3,1,1);
         geoplot(latitudes, longitudes, 'b-', 'LineWidth', 2); hold on;
 
-        colors = lines(numel(txSites));  % Gera cores distintas automaticamente
+        % Generate distinct colors for each base station
+        colors = lines(numel(txSites));
 
+        % Plot each base station with unique color
         for i = 1:numel(txSites)
             geoplot(txSites(i).Latitude, txSites(i).Longitude, ...
                 '^', 'MarkerSize', 10, ...
@@ -389,7 +430,7 @@ switch choice
         legend('RX Path', txSites.Name, 'Location','best');
         grid on;
 
-        % Subplot 3 – Estação ativa (Best Server)
+        % Plot 2: Active base station along the path
         subplot(3,1,2);
         plot(1:numPoints, bestServerIndex, 'k', 'LineWidth', 1.5);
         xlabel('Point on path');
@@ -399,7 +440,7 @@ switch choice
         title('[Chart] Serving Station (Best Server) Along the Path');
         grid on;
 
-        % Subplot 2 – RSSI ao longo do percurso
+        % Plot 3: RSSI values along the path
         subplot(3,1,3);
         plot(1:numPoints, rssiMatrix, 'LineWidth', 1.2);
         xlabel('Point on path');
@@ -408,7 +449,7 @@ switch choice
         legend({txSites.Name}, 'Location','best');
         grid on;
 
-        % HANDOVER - identificação e impressão
+        % Identify handover points (where best server changes)
         handoverPoints = find(diff(bestServerIndex) ~= 0);
         fprintf('\n--- Handovers Detected ---\n');
         for i = 1:length(handoverPoints)
@@ -417,66 +458,64 @@ switch choice
                 idx+1, txSites(bestServerIndex(idx)).Name, txSites(bestServerIndex(idx+1)).Name);
         end
 
-        %% Estudo de capacidade
-
+        %% Capacity Analysis with User Distribution
         fprintf('\n--- Capacity Analysis with 11940 Users ---\n');
 
-        % Número total de usuários
+        % Total number of users to distribute
         nUsers = 128642;
 
-        % Definir os pesos de distribuição de usuários (maior peso nas áreas urbanas - antenas 1, 2 e 9)
-        % Vamos calcular as posições de todas as antenas primeiro
+        % Get base station positions for user distribution
         txPositions = zeros(numel(txSites), 2);
         for i = 1:numel(txSites)
             txPositions(i, 1) = txSites(i).Latitude;
             txPositions(i, 2) = txSites(i).Longitude;
         end
 
-        % Gerar usuários com distribuição não uniforme, concentrando nas áreas urbanas
+        % Initialize user coordinates
         userLat = zeros(nUsers, 1);
         userLon = zeros(nUsers, 1);
 
-        % Definir proporções aproximadas: 75% dos usuários nas áreas urbanas (antenas 1, 2 e 9)
-        % e 25% distribuídos entre as demais antenas
+        % Define user distribution: 75% in urban areas, 25% in rural areas
         urbanUsers = round(0.75 * nUsers);
         ruralUsers = nUsers - urbanUsers;
 
-        % Definir raios de influência (menores para áreas urbanas, maiores para rurais)
-        urbanRadius = 0.015; % Raio menor para áreas urbanas (graus de lat/lon)
-        ruralRadius = 0.06; % Raio maior para áreas rurais
+        % Define influence radii (smaller for urban areas, larger for rural)
+        urbanRadius = 0.015; % Urban radius in lat/lon degrees
+        ruralRadius = 0.06;  % Rural radius in lat/lon degrees
 
-        % Identificar quais são as antenas urbanas
-        urbanAntennas = [1, 2];  % Adjust this to include only valid indices from your txPositions array
-        ruralAntennas = setdiff(1:numel(txSites), urbanAntennas);
+        % Define which antennas are in urban areas
+        urbanAntennas = [1, 2];  % Urban base station indices
+        ruralAntennas = setdiff(1:numel(txSites), urbanAntennas);  % All others are rural
 
-        % Distribuir usuários urbanos entre as antenas 1, 2 e 9
-        % Pesos para distribuição desigual entre as antenas urbanas
-        urbanWeights = [0.4, 0.6]; % Updated weights for just 2 antennas
+        % Distribution weights for urban antennas
+        urbanWeights = [0.4, 0.6]; % 40% to antenna 1, 60% to antenna 2
         urbanDistribution = round(urbanUsers * urbanWeights);
-        % Ajustar para garantir que soma seja exatamente urbanUsers
+
+        % Ensure exact total by adjusting last value
         urbanDistribution(end) = urbanUsers - sum(urbanDistribution(1:end-1));
 
         currentUserIndex = 1;
 
+        % Distribute urban users around urban base stations
         for i = 1:length(urbanAntennas)
             antennaIndex = urbanAntennas(i);
             centerLat = txPositions(antennaIndex, 1);
             centerLon = txPositions(antennaIndex, 2);
 
-            % Gerar usuários em torno desta antena urbana com distribuição gaussiana
             usersForThisAntenna = urbanDistribution(i);
 
-            % Gerar coordenadas com distribuição gaussiana ao redor da antena
-            r = urbanRadius * sqrt(rand(usersForThisAntenna, 1)); % Distribuição uniforme em área
+            % Generate uniform distribution in circular area
+            r = urbanRadius * sqrt(rand(usersForThisAntenna, 1));
             theta = 2 * pi * rand(usersForThisAntenna, 1);
 
+            % Calculate positions using polar coordinates
             userLat(currentUserIndex:currentUserIndex+usersForThisAntenna-1) = centerLat + r .* cos(theta);
             userLon(currentUserIndex:currentUserIndex+usersForThisAntenna-1) = centerLon + r .* sin(theta);
 
             currentUserIndex = currentUserIndex + usersForThisAntenna;
         end
 
-        % Distribuir usuários rurais entre as demais antenas
+        % Distribute rural users around rural base stations
         ruralUsersPerAntenna = round(ruralUsers / length(ruralAntennas));
 
         for i = 1:length(ruralAntennas)
@@ -484,14 +523,13 @@ switch choice
             centerLat = txPositions(antennaIndex, 1);
             centerLon = txPositions(antennaIndex, 2);
 
-            % Gerar usuários em torno desta antena rural
+            % For last antenna, ensure exact count
             usersForThisAntenna = ruralUsersPerAntenna;
             if i == length(ruralAntennas)
-                % Ajustar o último grupo para garantir que o total seja exato
                 usersForThisAntenna = ruralUsers - (i-1) * ruralUsersPerAntenna;
             end
 
-            % Gerar coordenadas com distribuição gaussiana ao redor da antena
+            % Generate uniform distribution in circular area
             r = ruralRadius * sqrt(rand(usersForThisAntenna, 1));
             theta = 2 * pi * rand(usersForThisAntenna, 1);
 
@@ -501,60 +539,60 @@ switch choice
             currentUserIndex = currentUserIndex + usersForThisAntenna;
         end
 
-        % Garantir que as coordenadas estão dentro dos limites do mapa
+        % Ensure all coordinates are within map boundaries
         userLat = max(min(userLat, latLim(2)), latLim(1));
         userLon = max(min(userLon, lonLim(2)), lonLim(1));
 
-        % Criar objeto receptor para todos os usuários uma única vez
+        % Create receiver objects for all users
         rx = rxsite('Latitude', userLat, 'Longitude', userLon);
 
-        % Calcular RSSI para todos usuários e todas estações base
+        % Calculate RSSI for all users and all base stations
         userRSSI = zeros(nUsers, numel(txSites));
         for i = 1:numel(txSites)
             userRSSI(:, i) = sigstrength(rx, txSites(i), pm);
         end
 
-        % Definir larguras de banda (Hz) antes de calcular capacidade
-        bandwidths = 100e6 * ones(1, numel(txSites));
-        bandwidths([1, 2]) = 100e6;  % Only reference existing stations
+        % Define bandwidth for capacity calculation
+        bandwidths = 100e6 * ones(1, numel(txSites));  % 100 MHz for all stations
+        bandwidths([1, 2]) = 100e6;  % Same bandwidth for stations 1 and 2
 
-        % Encontrar a melhor estação para cada usuário (maior RSSI)
+        % Determine best server for each user based on RSSI
         [bestRSSI, userAssignedBS] = max(userRSSI, [], 2);
 
-        % Definir ruído (em dBm e converter para mW)
-        noise_dBm = -100;
-        noise_mW = 10^(noise_dBm / 10);
+        % Define noise parameters
+        noise_dBm = -100;  % Noise level in dBm
+        noise_mW = 10^(noise_dBm / 10);  % Convert to mW
 
-        % Converter RSSI para potência linear (mW)
+        % Convert RSSI to linear power (mW)
         userPower_mW = 10.^(userRSSI / 10);
 
-        % Calcular SINR para todos usuários e todas BS
+        % Calculate SINR for all users at all base stations
         userSINR_all = zeros(nUsers, numel(txSites));
         for u = 1:nUsers
             for bs = 1:numel(txSites)
                 signal = userPower_mW(u, bs);
-                interference = sum(userPower_mW(u, :)) - signal;
-                userSINR_all(u, bs) = signal / (interference + noise_mW);
+                interference = sum(userPower_mW(u, :)) - signal;  % All other signals are interference
+                userSINR_all(u, bs) = signal / (interference + noise_mW);  % SINR calculation
             end
         end
 
-        % SINR do BS associado
+        % Get SINR with assigned base station for each user
         userSINR = zeros(nUsers, 1);
         for u = 1:nUsers
             userSINR(u) = userSINR_all(u, userAssignedBS(u));
         end
 
-        % Calcular capacidade individual por usuário com fórmula de Shannon (bps)
+        % Calculate Shannon capacity for each user (bits per second)
         capacityPerUser_shannon = bandwidths(userAssignedBS)' .* log2(1 + userSINR);
 
-        % Calcular capacidade total por estação base
+        % Calculate total capacity per base station
         capacityPerStation = zeros(1, numel(txSites));
         for i = 1:numel(txSites)
             usersInBS = (userAssignedBS == i);
             capacityPerStation(i) = sum(capacityPerUser_shannon(usersInBS));
         end
 
-        % Calcular capacidade média por usuário por estação base
+        % Calculate average capacity per user per base station
         capacityPerUser = zeros(1, numel(txSites));
         for i = 1:numel(txSites)
             usersInBS = (userAssignedBS == i);
@@ -563,48 +601,22 @@ switch choice
             end
         end
 
-
-        % Contagem de usuários por estação base
+        % Count users per base station
         capacityCount = histcounts(userAssignedBS, 1:(numel(txSites)+1));
 
-        % Visualização dos resultados
+        %% Capacity Visualization
         figure('Name', 'Capacity with 11940 Users');
 
-        % Subplot 1: Distribuição de usuários no mapa, colorido pelo SINR em dB
-        %subplot(1, 2, 1);
-        %scatter(userLon, userLat, 10, 10*log10(userSINR), 'filled');
-        %colormap(jet);
-        %colorbar;
-        %caxis([0 30]);
-        %hold on;
-
-        %% Plot antenas urbanas e rurais com marcadores e cores diferentes
-        %urbanAntennas = [1, 2, 9];
-        %for i = 1:numel(txSites)
-        %    if ismember(i, urbanAntennas)
-        %        plot(txSites(i).Longitude, txSites(i).Latitude, 'rs', 'MarkerSize', 12, 'MarkerFaceColor', 'red');
-        %    else
-        %        plot(txSites(i).Longitude, txSites(i).Latitude, 'k^', 'MarkerSize', 10, 'MarkerFaceColor', 'green');
-        %    end
-        %    text(txSites(i).Longitude, txSites(i).Latitude, [' BS' num2str(i)], 'FontSize', 9, 'FontWeight', 'bold');
-        %end
-        %xlim(lonLim);
-        %ylim(latLim);
-        %title('Distribuição de Usuários (cor: SINR dB)');
-        %xlabel('Longitude');
-        %ylabel('Latitude');
-        %legend('Usuários', 'Estações Urbanas', 'Estações Rurais', 'Location', 'best');
-
-        % Subplot 2: Capacidade média por usuário por estação (Mbps)
+        % Average capacity per user by station (Mbps)
         subplot(1, 2, 2);
-        bar(capacityPerUser / 1e6);
+        bar(capacityPerUser / 1e6);  % Convert to Mbps
         xticks(1:numel(txSites));
         xticklabels({txSites.Name});
         title('Average Capacity per User');
         xlabel('Base Station');
         ylabel('Capacity (Mbps)');
 
-        % Figura extra: Distribuição de usuários por estação base
+        % User distribution by station
         figure('Name', 'User Distribution by Base Station');
         bar(capacityCount);
         xticks(1:numel(txSites));
@@ -613,16 +625,19 @@ switch choice
         xlabel('Base Station');
         ylabel('Number of Users');
         hold on;
-        urbanAntennas = [1, 2];  % Define only valid indices
+
+        % Highlight urban stations
+        urbanAntennas = [1, 2];
         bar(urbanAntennas, capacityCount(urbanAntennas), 'r');
         legend('Rural Stations', 'Urban Stations');
 
-        % Impressão dos resultados
+        % Print capacity statistics
         fprintf('Capacity Statistics with %d users:\n', nUsers);
         totalUrbanUsers = 0;
         totalRuralUsers = 0;
 
         for i = 1:numel(txSites)
+            % Identify station type (urban or rural)
             if ismember(i, urbanAntennas)
                 stationType = 'Urban';
                 totalUrbanUsers = totalUrbanUsers + capacityCount(i);
@@ -631,6 +646,7 @@ switch choice
                 totalRuralUsers = totalRuralUsers + capacityCount(i);
             end
 
+            % Print statistics for each station
             fprintf('Station %d (%s): %d users (%.1f%%) - Type: %s\n', ...
                 i, txSites(i).Name, capacityCount(i), 100*capacityCount(i)/nUsers, stationType);
 
@@ -642,29 +658,29 @@ switch choice
             end
         end
 
+        % Print final summary
         fprintf('\nFinal Summary:\n');
         fprintf('Total users: %d\n', nUsers);
         fprintf('Users in urban areas: %d (%.1f%%)\n', totalUrbanUsers, 100*totalUrbanUsers/nUsers);
-        % Ajusta o separador se necessário (ex: ',' ou ';')lRuralUsers, 100*totalRuralUsers/nUsers);
-        %data = readmatrix("Bernardo_Joao_CM.txt");  % Make sure the file is in the same directory
 
     case 2
-        printf("=== STARTING SIMULATION ===\n");
+        %% ================ RAYTRACING SIMULATION FOR ESTG ================
+        fprintf("=== STARTING SIMULATION ===\n");
 
-        %% === INITIAL CONFIGURATION ===
+        %% Initial configuration
         fprintf("Setting up base station and transmitter parameters...\n");
 
-        % Coordinates of the base station
+        % Define base station coordinates
         latitude = 39.735250;
         longitude = -8.820638;
 
-        % Transmitter parameters
-        txHeight = 3;                  % Antenna height in meters
-        Ptx_dBm = 0;                   % Transmission power in dBm
+        % Set transmitter parameters
+        txHeight = 3;                   % Antenna height in meters
+        Ptx_dBm = 0;                    % Transmission power in dBm
         Ptx_W = 10^((Ptx_dBm - 30)/10); % Convert dBm to Watts
-        frequency = 3e9;               % Frequency: 3 GHz
+        frequency = 3e9;                % Frequency: 3 GHz
 
-        % Create transmitter site
+        % Create transmitter site object
         tx = txsite("Name", "Base Station", ...
             "Latitude", latitude, ...
             "Longitude", longitude, ...
@@ -672,64 +688,75 @@ switch choice
             "TransmitterPower", Ptx_W, ...
             "TransmitterFrequency", frequency);
 
-        %% === SETUP RAY TRACING MODEL ===
+        %% Configure ray tracing propagation model
         fprintf("Creating ray tracing propagation model...\n");
 
+        % Create ray tracing model with specific parameters
         pm = propagationModel("raytracing", ...
-            "Method", "sbr", ...
-            "MaxNumReflections", 2, ...
-            "SurfaceMaterial", "concrete");
+            "Method", "sbr",                 % Shooting and Bouncing Rays method
+        "MaxNumReflections", 2,          % Allow up to 2 reflections
+        "SurfaceMaterial", "concrete");  % Use concrete material properties
 
+        % Open site viewer with buildings and terrain data
         viewer1 = siteviewer("Name", "Ray Tracing Viewer", ...
-            Buildings="estg.osm", ...
-            Terrain="gmted2010");
+            Buildings="estg.osm",      % Load OpenStreetMap building data
+        Terrain="gmted2010");      % Load terrain elevation data
 
         fprintf("Plotting simulated coverage using ray tracing...\n");
 
+        % Calculate coverage using ray tracing model
         coverage(tx, ...
             "PropagationModel", pm, ...
-            "MaxRange", 2000, ...
-            "Resolution", 10, ...
-            "SignalStrengths", [-120 -100 -90 -80 -70 -60 -50]);
+            "MaxRange", 2000,          % Maximum range in meters
+        "Resolution", 10,           % Resolution in meters
+        "SignalStrengths", [-120 -100 -90 -80 -70 -60 -50]);  % Signal levels to plot
 
-        %% === IMPORT MEASURED DATA ===
+        %% Import measured data
         fprintf("\nImporting measured data from file...\n");
 
+        % Open and read data file
         fid = fopen('gupo1.txt');
         C = textscan(fid, '%f%f%f','Delimiter',',');
         fclose(fid);
 
+        % Extract measurement data
         Latitude = C{1};
         Longitude = C{2};
         signalMeasured = C{3};
 
         fprintf("Import completed. %d points loaded.\n", length(Latitude));
 
-        %% === VISUALIZE MEASURED DATA ===
+        %% Visualize measured data
         fprintf("Plotting measured data on map...\n");
 
         viewer2 = siteviewer("Name", "Measured Data Viewer");
 
+        % Create table and propagation data object for visualization
         tbl_measured = table(Latitude, Longitude, signalMeasured, ...
             'VariableNames', {'Latitude', 'Longitude', 'SignalStrength'});
         pd_measured = propagationData(tbl_measured);
 
+        % Plot measured data on map
         plot(pd_measured, "Colormap", "turbo", "LegendTitle", "Measured RSSI (dBm)");
         contour(pd_measured, "Colormap", "turbo", "LegendTitle", "Measured RSSI (dBm)");
 
-        %% === COMPUTE SIMULATED RSSI ===
+        %% Compute simulated RSSI at measurement points
         fprintf("\nComputing simulated RSSI for each measurement point...\n");
 
         n = length(Latitude);
         simulatedRSSI = zeros(size(Latitude));
 
+        % Calculate simulated RSSI for each measured point
         for i = 1:n
+            % Create receiver at measured location
             rx = rxsite("Latitude", Latitude(i), ...
                 "Longitude", Longitude(i), ...
-                "AntennaHeight", 1.5);
+                "AntennaHeight", 1.5);  % Typical height for mobile device
 
+            % Calculate signal strength
             simulatedRSSI(i) = sigstrength(rx, tx, pm);
 
+            % Display progress
             if mod(i, ceil(n/10)) == 0 || i == n
                 fprintf("Progress: %d/%d points (%.1f%%)\n", i, n, 100*i/n);
             end
@@ -737,75 +764,67 @@ switch choice
 
         fprintf("Simulated RSSI computation completed.\n");
 
-        %% === VISUALIZE SIMULATED RSSI ===
+        %% Visualize simulated RSSI
         fprintf("Plotting simulated data on map...\n");
 
         viewer3 = siteviewer("Name", "Simulated Data Viewer");
 
+        % Create table and propagation data object for visualization
         tbl_simulated = table(Latitude, Longitude, simulatedRSSI, ...
             'VariableNames', {'Latitude', 'Longitude', 'SignalStrength'});
         pd_simulated = propagationData(tbl_simulated);
 
+        % Plot simulated data on map
         plot(pd_simulated, "Colormap", "parula", "LegendTitle", "Simulated RSSI (dBm)");
         contour(pd_simulated, "Colormap", "parula", "LegendTitle", "Simulated RSSI (dBm)");
 
-        %% === ERROR ANALYSIS ===
+        %% Compute error between measured and simulated values
         fprintf("Computing error between measured and simulated RSSI...\n");
 
-        errorRSSI = signalMeasured - simulatedRSSI;
-        absError = abs(errorRSSI);
+        errorRSSI = signalMeasured - simulatedRSSI;  % Error in dB
+        absError = abs(errorRSSI);                   % Absolute error
 
-        meanError = mean(errorRSSI);
-        rmse = sqrt(mean(errorRSSI.^2));
-        mae = mean(absError);
+        % Calculate error statistics
+        meanError = mean(errorRSSI);                 % Mean error (bias)
+        rmse = sqrt(mean(errorRSSI.^2));             % Root Mean Square Error
+        mae = mean(absError);                        % Mean Absolute Error
 
+        % Display error statistics
         fprintf("\n=== ERROR STATISTICS ===\n");
         fprintf("Mean Error (Measured - Simulated): %.2f dB\n", meanError);
         fprintf("RMSE: %.2f dB\n", rmse);
         fprintf("MAE: %.2f dB\n", mae);
 
-        % %% === PLOT RSSI ERROR HEATMAP ===
-        % fprintf("Plotting heatmap of RSSI error...\n");
-        %
-        % viewer4 = siteviewer("Name", "RSSI Error Viewer");
-        %
-        % tbl_error = table(Latitude, Longitude, errorRSSI, ...
-        %     'VariableNames', {'Latitude', 'Longitude', 'SignalStrength'});
-        % pd_error = propagationData(tbl_error);
-        %
-        % plot(pd_error, "Colormap", "jet", "LegendTitle", "RSSI Error (dB)");
-        % contour(pd_error, "Colormap", "jet", "LegendTitle", "RSSI Error (dB)");
-
-        %% === PERCENTAGE ERROR MAP ===
+        %% Visualize percentage error
         fprintf("Plotting percentage error heatmap...\n");
 
-        % Avoid division by zero or values too close to 0
-        minValidRSSI = -100; % filter unrealistic RSSI values
+        % Filter out invalid RSSI values to avoid division issues
+        minValidRSSI = -100;
         validIdx = abs(signalMeasured) > 1 & signalMeasured < 0;
 
-        % Preallocate and compute percentage error
+        % Calculate percentage error
         percentageError = zeros(size(signalMeasured));
         percentageError(validIdx) = abs(errorRSSI(validIdx) ./ signalMeasured(validIdx)) * 100;
 
-        % Clamp large errors to improve visualization
-        percentageError = min(percentageError, 100); % cap at 100%
+        % Limit maximum error for better visualization
+        percentageError = min(percentageError, 100);  % Cap at 100%
 
         viewer5 = siteviewer("Name", "Percentage Error Viewer");
 
+        % Create table and propagation data object for visualization
         tbl_percent = table(Latitude, Longitude, percentageError, ...
             'VariableNames', {'Latitude', 'Longitude', 'SignalStrength'});
         pd_percent = propagationData(tbl_percent);
 
-        % Use 'hot' colormap but flip it so red is for high values (100% error)
+        % Plot percentage error on map
         plot(pd_percent, "Colormap", flipud(hot), "LegendTitle", "RSSI % Error");
         contour(pd_percent, "Colormap", flipud(hot), "LegendTitle", "RSSI % Error");
 
-
-        %% === ERROR HISTOGRAM ===
+        %% Error histogram
         fprintf("Plotting histogram of RSSI error...\n");
 
         figure;
-        histogram(errorRSSI, 20);
+        histogram(errorRSSI, 20);  % Create histogram with 20 bins
         title("RSSI Error Distribution (Measured - Simulated)");
         xlabel("Error (dB)");
         ylabel("Frequency");
@@ -814,5 +833,6 @@ switch choice
         fprintf("\n=== SIMULATION COMPLETE ===\n");
 
     otherwise
+        % Handle invalid choice (should not occur due to input validation)
         error('Invalid option! Please run again and choose 1 or 2.');
 end

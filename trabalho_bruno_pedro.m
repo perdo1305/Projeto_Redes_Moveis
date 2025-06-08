@@ -710,6 +710,31 @@ tx = txsite("Name", "Base Station", ...
     "TransmitterPower", Ptx_W, ...
     "TransmitterFrequency", frequency);
 
+% Create HyperLOG 3080 antenna equivalent using patch antenna
+antenna = design(patchMicrostrip, frequency);
+
+% Rotate the antenna
+antenna.Tilt = 45;                     % Rotation angle in degrees
+antenna.TiltAxis = [0 0 1];            % Rotation axis (Z-axis for azimuth rotation)
+
+% Alternative rotation examples:
+% antenna.Tilt = 30;                   % 30 degrees tilt
+% antenna.TiltAxis = [1 0 0];          % X-axis rotation (elevation tilt)
+% antenna.TiltAxis = [0 1 0];          % Y-axis rotation (roll)
+% antenna.TiltAxis = [0 0 1];          % Z-axis rotation (azimuth)
+
+% Verify the antenna pattern after rotation
+fprintf("Antenna gain at boresight: %.1f dBi\n", pattern(antenna, frequency, 0, 0));
+
+% Create transmitter site with rotated antenna
+tx = txsite("Name", "Base Station HyperLOG 3080", ...
+    "Latitude", latitude, ...
+    "Longitude", longitude, ...
+    "AntennaHeight", txHeight, ...
+    "TransmitterPower", Ptx_W, ...
+    "TransmitterFrequency", frequency, ...
+    "Antenna", antenna);  % Use the rotated antenna
+
 %% === SETUP RAY TRACING MODEL ===
 fprintf("Creating ray tracing propagation model...\n");
 

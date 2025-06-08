@@ -27,31 +27,42 @@ disp('2 - Raytracing Simulation ESTG');
 choice = 0;
 % Input validation loop to ensure user selects a valid option
 while ~ismember(choice, [1, 2])
-    choice = input('Enter 1 or 2: ');
-    if ~ismember(choice, [1, 2])
-        disp('Invalid option! Please enter 1 or 2.');
+    try
+        choice = input('Enter 1 or 2: ');
+        if isempty(choice)
+            disp('No input provided. Please enter 1 or 2.');
+            continue;
+        elseif ~isnumeric(choice) || ~ismember(choice, [1, 2])
+            disp('Invalid option! Please enter 1 or 2.');
+        end
+    catch
+        disp('Error in input. Please enter 1 or 2.');
     end
 end
 
 switch choice
     case 1
         %% ====================== 5G NETWORK SIMULATION ======================
-        fprintf('You choose: 5G Network in Leiria city\n');
+        fprintf('You chose: 5G Network in Leiria city\n');
+
+        % Define frequency constants
+        RURAL_FREQ = 0.7e9;  % 700 MHz for rural areas
+        URBAN_FREQ = 3.6e9;  % 3.6 GHz for urban areas
 
         % Define base station locations in Leiria
-        % ZU - Urban Zone (3600 MHz)
         % ZR - Rural Zone (700 MHz)
+        % ZU - Urban Zone (3600 MHz)
         baseStations = [
-            39.731823, -8.798338 %ZR 1
-            39.736940, -8.799721 %ZU 2 -
-            39.739715, -8.802933 %ZU 3 -
-            39.737284, -8.810495 %ZU 4 -
-            39.739443, -8.819369 %ZU 5 -
-            39.732543, -8.824665 %ZR 6
-            39.725831, -8.830228 %ZU 7 -
-            39.744488, -8.817963 %ZR 8
-            39.747375, -8.815152 %ZU 9 -
-            39.746381, -8.804517 %ZU 10 -
+            39.731823, -8.798338 % ZR 1 - Rural station
+            39.736940, -8.799721 % ZU 2 - Urban station
+            39.739715, -8.802933 % ZU 3 - Urban station
+            39.737284, -8.810495 % ZU 4 - Urban station
+            39.739443, -8.819369 % ZU 5 - Urban station
+            39.732543, -8.824665 % ZR 6 - Rural station
+            39.725831, -8.830228 % ZU 7 - Urban station
+            39.744488, -8.817963 % ZR 8 - Rural station
+            39.747375, -8.815152 % ZU 9 - Urban station
+            39.746381, -8.804517 % ZU 10 - Urban station
 
             % Additional locations (commented out)
             %39.747029, -8.809635 %  Castelo Leiria
@@ -62,10 +73,10 @@ switch choice
 
         numStations = size(baseStations, 1); % Calculate total number of stations
 
-        %% Create patch microstrip antenna array for base station #9
-        % Define frequency and calculate wavelength
-        fq=0.7e9; % 700 MHz
-        lambda = physconst('lightspeed') / fq; % Calculate wavelength
+        %% Create patch microstrip antenna array for base stations
+        % Define frequency and calculate wavelength (using rural frequency for example)
+        % Later in the code, appropriate frequency will be selected based on station type
+        fq = RURAL_FREQ; % Using rural frequency (700 MHz) for this antenna design example
 
         % Create patch element
         txElement = design(patchMicrostrip, fq);

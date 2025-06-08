@@ -77,6 +77,10 @@ switch choice
         % Define frequency and calculate wavelength (using rural frequency for example)
         % Later in the code, appropriate frequency will be selected based on station type
         fq = RURAL_FREQ; % Using rural frequency (700 MHz) for this antenna design example
+        
+        % Calculate wavelength
+        c = physconst('lightspeed'); % Speed of light
+        lambda = c / fq;             % Wavelength calculation
 
         % Create patch element
         txElement = design(patchMicrostrip, fq);
@@ -704,23 +708,23 @@ switch choice
 
         % Create ray tracing model with specific parameters
         pm = propagationModel("raytracing", ...
-            "Method", "sbr",                 % Shooting and Bouncing Rays method
-        "MaxNumReflections", 2,          % Allow up to 2 reflections
-        "SurfaceMaterial", "concrete");  % Use concrete material properties
+            "Method", "sbr", ...                 % Shooting and Bouncing Rays method
+            "MaxNumReflections", 2, ...          % Allow up to 2 reflections
+            "SurfaceMaterial", "concrete");      % Use concrete material properties
 
         % Open site viewer with buildings and terrain data
         viewer1 = siteviewer("Name", "Ray Tracing Viewer", ...
-            Buildings="estg.osm",      % Load OpenStreetMap building data
-        Terrain="gmted2010");      % Load terrain elevation data
+            "Buildings", "estg.osm", ...         % Load OpenStreetMap building data
+            "Terrain", "gmted2010");             % Load terrain elevation data
 
         fprintf("Plotting simulated coverage using ray tracing...\n");
 
         % Calculate coverage using ray tracing model
         coverage(tx, ...
             "PropagationModel", pm, ...
-            "MaxRange", 2000,          % Maximum range in meters
-        "Resolution", 10,           % Resolution in meters
-        "SignalStrengths", [-120 -100 -90 -80 -70 -60 -50]);  % Signal levels to plot
+            "MaxRange", 2000, ...          % Maximum range in meters
+            "Resolution", 10, ...          % Resolution in meters
+            "SignalStrengths", [-120 -100 -90 -80 -70 -60 -50]);  % Signal levels to plot
 
         %% Import measured data
         fprintf("\nImporting measured data from file...\n");
